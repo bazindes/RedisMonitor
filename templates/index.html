@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="{{static_url('js/jquery.js')}}"></script>
+    <script src="{{static_url('js/bootstrap.min.js')}}"></script>
+    <script src="{{static_url('js/holder.js')}}"></script>
+    <script src="{{static_url('js/bootstrap-datetimepicker.min.js')}}"></script>
+    <script src="{{static_url('js/bootstrap-datetimepicker.zh-CN.js')}}"></script>
+    <script src="{{static_url('js/highcharts.js')}}"></script>
+    <link href="{{static_url('css/bootstrap.min.css')}}" rel="stylesheet">
+    <link href="{{static_url('css/main.css')}}" rel="stylesheet">
+    <link href="{{static_url('css/bootstrap-datetimepicker.min.css')}}" rel="stylesheet">
+    <title>Redis-Monitor</title>
+</head>
+<body>
+
+    <div class="container-fluid">
+      <div class="row" style="margin-top: 20px">
+          <div class="col-md-1"></div>
+          <div class="col-md-10">
+              <form id="redisForm">
+              <div class="row" >
+                  <div class="col-md-3">
+                      <div  class="input-group input-group-sm date form_datetime" data-link-field="date">
+                        <span class="input-group-addon">从：</span>
+                        <input id="stat_date" class="form-control" type="text" name="date" id="date" value='2015-12-08 01:00'>
+                      </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div  class="input-group input-group-sm date form_datetime" data-link-field="date_last">
+                        <span class="input-group-addon">到：</span>
+                        <input id="stat_date_last" class="form-control" type="text" name="date_last" id="date_last" value='2015-12-10 16:14'>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                      <div class="input-group input-group-sm">
+                        <span class="input-group-addon">Host:</span>
+                        <input class="form-control" type="text" name="host" value="10.100.28.112">
+                      </div>
+                  </div>
+                  <div class="col-md-2">
+                      <div class="input-group input-group-sm">
+                        <span class="input-group-addon">Port:</span>
+                        <input class="form-control" type="text" name="port" value="6379">
+                      </div>
+                  </div>
+                  <div class="col-md-1">
+                    <button type="button" id="submit" class="btn btn-success btn-sm">
+                        查询
+                    </button>
+                  </div>
+              </div>
+              </form>
+          </div>
+          <div class="col-md-1"></div>
+      </div>
+        <div class="row" style="margin-top: 20px">
+            <div class="col-md-10 col-md-offset-1" style="border: grey 1px"></div>
+        </div>
+        <div class="row" style="margin-top: 20px">
+            <div class="col-md-10 col-md-offset-1">
+                <div id="svg" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+            </div>
+        </div>
+    </div>
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="#">Push Redis-Monitor</a>
+        </div>
+      </div>
+    </nav>
+</body>
+
+<script type="text/javascript">
+$(function(){
+    $('#submit').on('click' , function(){
+        var form = $('#redisForm').serialize()
+        $.getJSON('/redis' , form ,  function(result){
+            var graph = [ [] , [
+                {name: 'used_memory',data: []} ,
+                {name: 'used_memory_rss',data: []},
+                {name: 'used_memory_peak',data: []},
+                {name: 'mem_fragmentation_ratio',data: []}
+            ] ];
+            var j = 0
+            for(var i=0;i<result.length;i++){
+                graph[0].push(result[j].date + '')
+                graph[1][0].data.push(result[j].used_memory - 0)
+                graph[1][1].data.push(result[j].used_memory_rss - 0)
+                graph[1][2].data.push(result[j].used_memory_peak - 0)
+                graph[1][3].data.push(result[j].mem_fragmentation_ratio - 0)
+                j++
+            }
+            drawHighChats(graph)
+        })
+    })
+
+})
+$('#stat_date').datetimepicker({
+    'weekStart':1,
+    'autoclose':true,
+    'minView':0,
+    'maxView':3,
+    'todayBtn':1,
+    'todayHighlight':1,
+    'language':'zh-CN',
+    'pickerPosition':"bottom-right",
+    startView: 2,
+    forceParse: 0,
+    showMeridian: 1,
+    minuteStep:10,
+    'initialDate':new Date()
+
+});
+$('#stat_date_last').datetimepicker({
+    'weekStart':1,
+    'autoclose':true,
+    'minView':0,
+    'maxView':3,
+    'todayBtn':1,
+    'todayHighlight':1,
+    'language':'zh-CN',
+    'pickerPosition':"bottom-right",
+    startView: 2,
+    forceParse: 0,
+    showMeridian: 1,
+    minuteStep:10,
+    'initialDate':new Date()
+});
+function drawHighChats(result){
+    $('#svg').highcharts({
+        chart: {
+            type: 'area'
+        },
+        title: {
+            text: 'Redis Info'
+        },
+        xAxis: {
+            categories: result[0]
+        },
+        credits: {
+            enabled: false
+        },
+        series: result[1]
+    });
+}
+</script>
+</html>
